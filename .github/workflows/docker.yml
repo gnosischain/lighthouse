@@ -5,6 +5,7 @@ on:
         branches:
             - unstable
             - stable
+            - hopr
         tags:
             - v*
 
@@ -13,12 +14,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-    DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-    DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-    IMAGE_NAME: ${{ github.repository_owner}}/lighthouse
-    LCLI_IMAGE_NAME: ${{ github.repository_owner }}/lcli
-    # Enable self-hosted runners for the sigp repo only.
-    SELF_HOSTED_RUNNERS: ${{ github.repository == 'sigp/lighthouse' }}
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}-hopr
+  LCLI_IMAGE_NAME: ${{ github.repository_owner }}/lcli
 
 jobs:
     # Extract the VERSION which is either `latest` or `vX.Y.Z`, and the VERSION_SUFFIX
@@ -48,19 +46,21 @@ jobs:
         outputs:
             VERSION: ${{ env.VERSION }}
             VERSION_SUFFIX: ${{ env.VERSION_SUFFIX }}
+
     build-docker-single-arch:
         name: build-docker-${{ matrix.binary }}${{ matrix.features.version_suffix }}
-        # Use self-hosted runners only on the sigp repo.
-        runs-on: ${{ github.repository == 'sigp/lighthouse' && fromJson('["self-hosted", "linux", "release"]') || 'ubuntu-22.04'  }}
+        # Use self-hosted runners only on the gnosischain repo.
+        runs-on: ubuntu-22.04
         strategy:
             matrix:
-                binary: [aarch64,
-                         aarch64-portable,
-                         x86_64,
-                         x86_64-portable]
+                binary: [aarch64, x86_64]
+                # binary: [aarch64,
+                #          aarch64-portable,
+                #          x86_64,
+                #          x86_64-portable]
                 features: [
-                    {version_suffix: "", env: "gnosis,slasher-lmdb,slasher-mdbx,jemalloc"},
-                    {version_suffix: "-dev", env: "jemalloc,spec-minimal"}
+                    {version_suffix: "", env: "gnosis,slasher-lmdb,slasher-mdbx,jemalloc"}
+                    # {version_suffix: "-dev", env: "jemalloc,spec-minimal"}
                 ]
                 include:
                     - profile: maxperf
@@ -71,13 +71,21 @@ jobs:
             VERSION_SUFFIX: ${{ needs.extract-version.outputs.VERSION_SUFFIX }}
             FEATURE_SUFFIX: ${{ matrix.features.version_suffix }}
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
             - name: Update Rust
-              if: env.SELF_HOSTED_RUNNERS == 'false'
               run: rustup update stable
-            - name: Dockerhub login
-              run: |
-                  echo "${DOCKER_PASSWORD}" | docker login --username ${DOCKER_USERNAME} --password-stdin
+            - name: Log in to the Container registry
+              uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+              with:
+                registry: ${{ env.REGISTRY }}
+                username: ${{ github.actor }}
+                password: ${{ secrets.GITHUB_TOKEN }}
+            # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
+            - name: Extract metadata (tags, labels) for Docker
+              id: meta
+              uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+              with:
+                images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
             - name: Cross build Lighthouse binary
               run: |
                   cargo install cross
@@ -101,11 +109,9 @@ jobs:
               run: echo "MODERNITY_SUFFIX=-modern" >> $GITHUB_ENV;
 
             - name: Install QEMU
-              if: env.SELF_HOSTED_RUNNERS == 'false'
               run: sudo apt-get update && sudo apt-get install -y qemu-user-static
 
             - name: Set up Docker Buildx
-              if: env.SELF_HOSTED_RUNNERS == 'false'
               uses: docker/setup-buildx-action@v2
 
             - name: Build and push
@@ -115,47 +121,48 @@ jobs:
                 context: .
                 platforms: linux/${{ env.SHORT_ARCH }}
                 push: true
-                tags: ${{ env.IMAGE_NAME }}:${{ env.VERSION }}-${{ env.SHORT_ARCH }}${{ env.VERSION_SUFFIX }}${{ env.MODERNITY_SUFFIX }}${{ env.FEATURE_SUFFIX }}
+                tags: ${{ steps.meta.outputs.tags }}
+                labels: ${{ steps.meta.outputs.labels }}
 
-    build-docker-multiarch:
-        name: build-docker-multiarch${{ matrix.modernity }}
-        runs-on: ubuntu-22.04
-        needs: [build-docker-single-arch, extract-version]
-        strategy:
-            matrix:
-                modernity: ["", "-modern"]
-        env:
-            VERSION: ${{ needs.extract-version.outputs.VERSION }}
-            VERSION_SUFFIX: ${{ needs.extract-version.outputs.VERSION_SUFFIX }}
-        steps:
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v2
+    # build-docker-multiarch:
+    #     name: build-docker-multiarch${{ matrix.modernity }}
+    #     runs-on: ubuntu-22.04
+    #     needs: [build-docker-single-arch, extract-version]
+    #     strategy:
+    #         matrix:
+    #             modernity: ["", "-modern"]
+    #     env:
+    #         VERSION: ${{ needs.extract-version.outputs.VERSION }}
+    #         VERSION_SUFFIX: ${{ needs.extract-version.outputs.VERSION_SUFFIX }}
+    #     steps:
+    #         - name: Set up Docker Buildx
+    #           uses: docker/setup-buildx-action@v2
 
-            - name: Dockerhub login
-              run: |
-                  echo "${DOCKER_PASSWORD}" | docker login --username ${DOCKER_USERNAME} --password-stdin
+    #         - name: Dockerhub login
+    #           run: |
+    #               echo "${DOCKER_PASSWORD}" | docker login --username ${DOCKER_USERNAME} --password-stdin
 
-            - name: Create and push multiarch manifest
-              run: |
-                  docker buildx imagetools create -t ${IMAGE_NAME}:${VERSION}${VERSION_SUFFIX}${{ matrix.modernity }} \
-                      ${IMAGE_NAME}:${VERSION}-arm64${VERSION_SUFFIX}${{ matrix.modernity }} \
-                      ${IMAGE_NAME}:${VERSION}-amd64${VERSION_SUFFIX}${{ matrix.modernity }};
+    #         - name: Create and push multiarch manifest
+    #           run: |
+    #               docker buildx imagetools create -t ${IMAGE_NAME}:${VERSION}${VERSION_SUFFIX}${{ matrix.modernity }} \
+    #                   ${IMAGE_NAME}:${VERSION}-arm64${VERSION_SUFFIX}${{ matrix.modernity }} \
+    #                   ${IMAGE_NAME}:${VERSION}-amd64${VERSION_SUFFIX}${{ matrix.modernity }};
 
-    build-docker-lcli:
-        runs-on: ubuntu-22.04
-        needs: [extract-version]
-        env:
-            VERSION: ${{ needs.extract-version.outputs.VERSION }}
-            VERSION_SUFFIX: ${{ needs.extract-version.outputs.VERSION_SUFFIX }}
-        steps:
-            - uses: actions/checkout@v3
-            - name: Dockerhub login
-              run: |
-                  echo "${DOCKER_PASSWORD}" | docker login --username ${DOCKER_USERNAME} --password-stdin
-            - name: Build lcli dockerfile (with push)
-              run: |
-                  docker build \
-                      --build-arg PORTABLE=true \
-                      --tag ${LCLI_IMAGE_NAME}:${VERSION}${VERSION_SUFFIX} \
-                      --file ./lcli/Dockerfile .
-                  docker push ${LCLI_IMAGE_NAME}:${VERSION}${VERSION_SUFFIX}
+    # build-docker-lcli:
+    #     runs-on: ubuntu-22.04
+    #     needs: [extract-version]
+    #     env:
+    #         VERSION: ${{ needs.extract-version.outputs.VERSION }}
+    #         VERSION_SUFFIX: ${{ needs.extract-version.outputs.VERSION_SUFFIX }}
+    #     steps:
+    #         - uses: actions/checkout@v3
+    #         - name: Dockerhub login
+    #           run: |
+    #               echo "${DOCKER_PASSWORD}" | docker login --username ${DOCKER_USERNAME} --password-stdin
+    #         - name: Build lcli dockerfile (with push)
+    #           run: |
+    #               docker build \
+    #                   --build-arg PORTABLE=true \
+    #                   --tag ${LCLI_IMAGE_NAME}:${VERSION}${VERSION_SUFFIX} \
+    #                   --file ./lcli/Dockerfile .
+    #               docker push ${LCLI_IMAGE_NAME}:${VERSION}${VERSION_SUFFIX}
