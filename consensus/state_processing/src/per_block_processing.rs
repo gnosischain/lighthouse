@@ -152,6 +152,10 @@ pub fn per_block_processing<E: EthSpec, Payload: AbstractExecPayload<E>>(
         spec,
     )?;
 
+    if state.fork_name() >= ForkName::Fulu {
+        process_upstream_chain(state, block)?;
+    }
+
     if verify_signatures.is_true() {
         verify_block_signature(state, signed_block, ctxt, spec)?;
     }
@@ -252,6 +256,42 @@ pub fn process_block_header<E: EthSpec>(
     );
 
     Ok(proposer_index)
+}
+
+pub fn process_upstream_chain(
+    state: &mut BeaconState<E>,
+    block: BeaconBlock<E>,
+) -> Result<(), BlockOperationError> {
+    // Point to an upstream block that's in the past
+    verify!(
+        compute_upstream_timestamp_at_slot(block.body.upstream_head.slot)
+            <= compute_timestamp_at_slot(block.slot),
+        UpstreamChainInvalid::NotFutureBlock,
+    );
+
+    // Ascending upstream slots
+    verify!(
+        block.body.upstream_head.slot >= state.latest_upstream_head.slot,
+        UpstreamChainInvalid::DescendingSlots
+    );
+
+    // Reject distinct blocks with equal slots, expect for the first post-fork state
+    if block.body.upstream_head.slot == state.latest_upstream_head.slot
+        && state.latest_upstream_head.slot != BeaconBlockHeader()
+    {
+        verify!(
+            block.body.upstream_head == state.latest_upstream_head,
+            UpstreamChainInvalid::NotDistinctSlots
+        )
+    }
+
+    // TODO: Verify inclusion proofs of the upstream checkpoints
+    *state.latest_upstream_finalized_checkpoint_mut()? =
+        block.body.upstream_finalized_checkpoint()?;
+    *state.latest_upstream_justified_checkpoint_mut()? =
+        block.body.upstream_finalized_checkpoint()?;
+
+    Ok(())
 }
 
 /// Verifies the signature of a block.
