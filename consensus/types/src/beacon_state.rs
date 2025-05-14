@@ -542,6 +542,12 @@ where
     #[test_random(default)]
     #[superstruct(only(Electra, Fulu))]
     pub pending_consolidations: List<PendingConsolidation, E::PendingConsolidationsLimit>,
+    #[superstruct(only(Fulu))]
+    pub latest_upstream_head: BeaconBlockHeader,
+    #[superstruct(only(Fulu))]
+    pub latest_upstream_justified_checkpoint: Checkpoint,
+    #[superstruct(only(Fulu))]
+    pub latest_upstream_finalized_checkpoint: Checkpoint,
 
     // Caching (not in the spec)
     #[serde(skip_serializing, skip_deserializing)]

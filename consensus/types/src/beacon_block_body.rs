@@ -121,6 +121,12 @@ pub struct BeaconBlockBody<E: EthSpec, Payload: AbstractExecPayload<E> = FullPay
     pub blob_kzg_commitments: KzgCommitments<E>,
     #[superstruct(only(Electra, Fulu))]
     pub execution_requests: ExecutionRequests<E>,
+    #[superstruct(only(Fulu))]
+    pub upstream_head: BeaconBlockHeader,
+    #[superstruct(only(Fulu))]
+    pub upstream_justified_checkpoint: Checkpoint,
+    #[superstruct(only(Fulu))]
+    pub upstream_finalized_checkpoint: Checkpoint,
     #[superstruct(only(Base, Altair))]
     #[metastruct(exclude_from(fields))]
     #[ssz(skip_serializing, skip_deserializing)]

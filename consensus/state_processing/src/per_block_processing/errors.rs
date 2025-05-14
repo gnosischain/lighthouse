@@ -284,6 +284,13 @@ pub enum HeaderInvalid {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum UpstreamChainInvalid {
+    NotFutureBlock,
+    NotDistinctSlots,
+    DescendingSlots,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum ProposerSlashingInvalid {
     /// The proposer index is not a known validator.
     ProposerUnknown(u64),
