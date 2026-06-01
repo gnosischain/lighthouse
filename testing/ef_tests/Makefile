@@ -23,7 +23,9 @@ gnosis: $(OUTPUT_DIR)/tests/gnosis
 
 $(OUTPUT_DIR)/tests/gnosis:
 	mkdir -p $(OUTPUT_DIR)
-	./download_gnosis_test_vectors.sh $(GNOSIS_SPECS_TEST_VERSION)
+	EF_TESTS_REPO=gnosischain/consensus-specs EF_TESTS_PRESETS="general gnosis" \
+		EF_TESTS_NIGHTLY_WORKFLOW=tests.yml EF_TESTS_NIGHTLY_BRANCH=master \
+		./download_test_vectors.sh $(GNOSIS_SPECS_TEST_VERSION)
 	for test_tarball in general.tar.gz gnosis.tar.gz; do \
 		tar -xzf $$test_tarball -C $(OUTPUT_DIR); \
 		rm -f $$test_tarball; \
