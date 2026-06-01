@@ -242,6 +242,23 @@ jobs:
           bins: cargo-nextest
     - name: Run consensus-spec-tests with blst and fake_crypto
       run: make test-ef
+  ef-tests-gnosis-ubuntu:
+    name: ef-tests-gnosis-ubuntu
+    needs: [check-labels]
+    if: needs.check-labels.outputs.skip_ci != 'true'
+    runs-on: ubuntu-latest
+    env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+    - uses: actions/checkout@v5
+    - name: Get latest version of stable Rust
+      uses: moonrepo/setup-rust@v1
+      with:
+          channel: stable
+          cache-target: release
+          bins: cargo-nextest
+    - name: Run Gnosis-preset consensus-spec-tests with blst and fake_crypto
+      run: make test-ef-gnosis
   basic-simulator-ubuntu:
     name: basic-simulator-ubuntu
     needs: [check-labels]
@@ -437,6 +454,7 @@ jobs:
       'debug-tests-ubuntu',
       'state-transition-vectors-ubuntu',
       'ef-tests-ubuntu',
+      'ef-tests-gnosis-ubuntu',
       'basic-simulator-ubuntu',
       'fallback-simulator-ubuntu',
       'execution-engine-integration-ubuntu',

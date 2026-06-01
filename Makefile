@@ -202,6 +202,11 @@ run-ef-tests:
 	cargo nextest run --release -p ef_tests --features "ef_tests,$(EF_TEST_FEATURES),fake_crypto"
 	./$(EF_TESTS)/check_all_files_accessed.py $(EF_TESTS)/.accessed_file_log.txt $(EF_TESTS)/consensus-spec-tests
 
+# Runs the Gnosis-preset EF test vectors as a dedicated job (see testing/ef_tests/tests/gnosis.rs).
+run-ef-tests-gnosis:
+	cargo nextest run --release -p ef_tests --features "ef_tests,gnosis_tests,$(EF_TEST_FEATURES)" --test gnosis
+	cargo nextest run --release -p ef_tests --features "ef_tests,gnosis_tests,$(EF_TEST_FEATURES),fake_crypto" --test gnosis
+
 # Run the tests in the `beacon_chain` crate for all known forks.
 # TODO(EIP-7732) Extend to support gloas by using RECENT_FORKS instead
 test-beacon-chain: $(patsubst %,test-beacon-chain-%,$(RECENT_FORKS_BEFORE_GLOAS))
@@ -311,6 +316,13 @@ make-ef-tests:
 # Download/extract the nightly EF test vectors.
 make-ef-tests-nightly:
 	CONSENSUS_SPECS_TEST_VERSION=nightly make -C $(EF_TESTS)
+
+# Download/extract the Gnosis-preset EF test vectors from gnosischain/consensus-specs.
+make-ef-tests-gnosis:
+	make -C $(EF_TESTS) gnosis
+
+# Downloads and runs the Gnosis-preset EF test vectors.
+test-ef-gnosis: make-ef-tests-gnosis run-ef-tests-gnosis
 
 # Verifies that crates compile with fuzzing features enabled
 arbitrary-fuzz:

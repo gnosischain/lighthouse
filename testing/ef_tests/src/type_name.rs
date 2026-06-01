@@ -36,6 +36,7 @@ macro_rules! type_name_generic {
 
 type_name!(MinimalEthSpec, "minimal");
 type_name!(MainnetEthSpec, "mainnet");
+type_name!(GnosisEthSpec, "gnosis");
 type_name_generic!(AggregateAndProof);
 type_name_generic!(AggregateAndProofBase, "AggregateAndProof");
 type_name_generic!(AggregateAndProofElectra, "AggregateAndProof");
