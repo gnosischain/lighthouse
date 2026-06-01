@@ -202,10 +202,12 @@ run-ef-tests:
 	cargo nextest run --release -p ef_tests --features "ef_tests,$(EF_TEST_FEATURES),fake_crypto"
 	./$(EF_TESTS)/check_all_files_accessed.py $(EF_TESTS)/.accessed_file_log.txt $(EF_TESTS)/consensus-spec-tests
 
-# Runs the Gnosis-preset EF test vectors as a dedicated job (see testing/ef_tests/tests/gnosis.rs).
+# Runs the Gnosis-preset EF test vectors as a dedicated job. The `gnosis_tests` feature aliases
+# the EthSpec types in tests/tests.rs to GnosisEthSpec, so the whole matrix runs against the
+# Gnosis preset vectors (no mainnet/minimal in this job).
 run-ef-tests-gnosis:
-	cargo nextest run --release -p ef_tests --features "ef_tests,gnosis_tests,$(EF_TEST_FEATURES)" --test gnosis
-	cargo nextest run --release -p ef_tests --features "ef_tests,gnosis_tests,$(EF_TEST_FEATURES),fake_crypto" --test gnosis
+	cargo nextest run --release -p ef_tests --features "ef_tests,gnosis_tests,$(EF_TEST_FEATURES)"
+	cargo nextest run --release -p ef_tests --features "ef_tests,gnosis_tests,$(EF_TEST_FEATURES),fake_crypto"
 
 # Run the tests in the `beacon_chain` crate for all known forks.
 # TODO(EIP-7732) Extend to support gloas by using RECENT_FORKS instead

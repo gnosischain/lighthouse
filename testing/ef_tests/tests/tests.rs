@@ -4,6 +4,13 @@ use ef_tests::*;
 use typenum::Unsigned;
 use types::*;
 
+// Under the `gnosis_tests` feature, recycle the entire mainnet/minimal reference-test matrix for
+// the Gnosis preset by aliasing both EthSpec types to `GnosisEthSpec` (which `TypeName` maps to
+// the `gnosis` vector directory). Single source of truth: any test added upstream is covered for
+// Gnosis automatically on rebase, with no separate generated file to maintain.
+#[cfg(feature = "gnosis_tests")]
+use types::{GnosisEthSpec as MainnetEthSpec, GnosisEthSpec as MinimalEthSpec};
+
 // Check that the hand-computed multiplications on EthSpec are correctly computed.
 // This test lives here because one is most likely to muck these up during a spec update.
 fn check_typenum_values<E: EthSpec>() {
@@ -245,6 +252,10 @@ mod ssz_static {
         DataColumnSidecarGloas, DepositRequest, LightClientBootstrapAltair, PendingDeposit,
         PendingPartialWithdrawal, WithdrawalRequest, *,
     };
+    // Recycle the ssz_static matrix for the Gnosis preset (see the crate-root alias above); the
+    // module's own `use types::*` glob means the alias must be repeated here to take effect.
+    #[cfg(feature = "gnosis_tests")]
+    use types::{GnosisEthSpec as MainnetEthSpec, GnosisEthSpec as MinimalEthSpec};
 
     ssz_static_test!(attestation_data, AttestationData);
     ssz_static_test!(beacon_block, SszStaticWithSpecHandler, BeaconBlock<_>);
