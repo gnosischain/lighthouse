@@ -1,6 +1,9 @@
 # To download/extract nightly tests, run:
 # CONSENSUS_SPECS_TEST_VERSION=nightly make
 CONSENSUS_SPECS_TEST_VERSION ?= v1.7.0-alpha.1
+# Gnosis-preset reference tests are published by gnosischain/consensus-specs on its own
+# release cadence (tag derived from that repo's VERSION.txt). Override as needed; pinned in CI.
+GNOSIS_SPECS_TEST_VERSION ?= v1.7.0-alpha.4
 REPO_NAME := consensus-spec-tests
 OUTPUT_DIR := ./$(REPO_NAME)
 
@@ -10,9 +13,23 @@ BLS_TEST = bls_tests_yaml
 BLS_OUTPUT_DIR := $(OUTPUT_DIR)/$(BLS_TEST_REPO_NAME)
 BLS_BASE_URL := https://github.com/ethereum/$(BLS_TEST_REPO_NAME)/releases/download/$(BLS_TEST_VERSION)
 
-.PHONY: all clean
+.PHONY: all clean gnosis
 
 all: clean $(OUTPUT_DIR) $(BLS_OUTPUT_DIR)
+
+# Download/extract only the Gnosis-preset suite (+ preset-independent general tests) into the
+# same OUTPUT_DIR layout (tests/gnosis/..., tests/general/...). Used by the dedicated gnosis job.
+gnosis: $(OUTPUT_DIR)/tests/gnosis
+
+$(OUTPUT_DIR)/tests/gnosis:
+	mkdir -p $(OUTPUT_DIR)
+	EF_TESTS_REPO=gnosischain/consensus-specs EF_TESTS_PRESETS="general gnosis" \
+		EF_TESTS_NIGHTLY_WORKFLOW=tests.yml EF_TESTS_NIGHTLY_BRANCH=master \
+		./download_test_vectors.sh $(GNOSIS_SPECS_TEST_VERSION)
+	for test_tarball in general.tar.gz gnosis.tar.gz; do \
+		tar -xzf $$test_tarball -C $(OUTPUT_DIR); \
+		rm -f $$test_tarball; \
+	done
 
 clean:
 	rm -rf *.tar.gz $(OUTPUT_DIR) $(BLS_OUTPUT_DIR)

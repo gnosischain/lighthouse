@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-TESTS=("general" "minimal" "mainnet")
+# Source repo, preset set and nightly workflow are overridable so the same script can fetch the
+# Ethereum vectors (defaults) or the Gnosis-preset vectors from gnosischain/consensus-specs.
+repo="${EF_TESTS_REPO:-ethereum/consensus-specs}"
+read -ra TESTS <<< "${EF_TESTS_PRESETS:-general minimal mainnet}"
+nightly_workflow="${EF_TESTS_NIGHTLY_WORKFLOW:-generate_vectors.yml}"
+nightly_branch="${EF_TESTS_NIGHTLY_BRANCH:-dev}"
 
 version=${1}
 if [[ "$version" == "nightly" ]]; then
@@ -17,12 +22,11 @@ if [[ "$version" == "nightly" ]]; then
 		fi
 	done
 
-	repo="ethereum/consensus-specs"
 	api="https://api.github.com"
 	auth_header="Authorization: token ${GITHUB_TOKEN}"
 
 	run_id=$(curl -s -H "${auth_header}" \
-		"${api}/repos/${repo}/actions/workflows/generate_vectors.yml/runs?branch=dev&status=success&per_page=1" |
+		"${api}/repos/${repo}/actions/workflows/${nightly_workflow}/runs?branch=${nightly_branch}&status=success&per_page=1" |
 		jq -r '.workflow_runs[0].id')
 
 	if [[ "${run_id}" == "null" || -z "${run_id}" ]]; then
@@ -57,7 +61,7 @@ else
 		if [[ ! -e "${test}.tar.gz" ]]; then
 			echo "Downloading: ${version}/${test}.tar.gz"
 			curl --progress-bar --location --remote-name --show-error --retry 3 --retry-all-errors --fail \
-				"https://github.com/ethereum/consensus-specs/releases/download/${version}/${test}.tar.gz" \
+				"https://github.com/${repo}/releases/download/${version}/${test}.tar.gz" \
 				|| {
 					echo "Curl failed. Aborting"
 					rm -f "${test}.tar.gz"
