@@ -3,7 +3,7 @@
 CONSENSUS_SPECS_TEST_VERSION ?= v1.7.0-alpha.1
 # Gnosis-preset reference tests are published by gnosischain/consensus-specs on its own
 # release cadence (tag derived from that repo's VERSION.txt). Override as needed; pinned in CI.
-GNOSIS_SPECS_TEST_VERSION ?= v1.7.0-alpha.4
+GNOSIS_SPECS_TEST_VERSION ?= v1.7.0-alpha.8
 REPO_NAME := consensus-spec-tests
 OUTPUT_DIR := ./$(REPO_NAME)
 
