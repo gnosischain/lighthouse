@@ -9,7 +9,7 @@ use types::*;
 // the `gnosis` vector directory). Single source of truth: any test added upstream is covered for
 // Gnosis automatically on rebase, with no separate generated file to maintain.
 #[cfg(feature = "gnosis_tests")]
-use types::{GnosisEthSpec as MainnetEthSpec, GnosisEthSpec as MinimalEthSpec};
+use types::GnosisEthSpec as MainnetEthSpec;
 
 // Check that the hand-computed multiplications on EthSpec are correctly computed.
 // This test lives here because one is most likely to muck these up during a spec update.
@@ -288,7 +288,7 @@ mod ssz_static {
     // Recycle the ssz_static matrix for the Gnosis preset (see the crate-root alias above); the
     // module's own `use types::*` glob means the alias must be repeated here to take effect.
     #[cfg(feature = "gnosis_tests")]
-    use types::{GnosisEthSpec as MainnetEthSpec, GnosisEthSpec as MinimalEthSpec};
+    use types::GnosisEthSpec as MainnetEthSpec;
 
     ssz_static_test!(attestation_data, AttestationData);
     ssz_static_test!(beacon_block, SszStaticWithSpecHandler, BeaconBlock<_>);

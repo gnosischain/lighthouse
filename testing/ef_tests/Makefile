@@ -23,10 +23,15 @@ gnosis: $(OUTPUT_DIR)/tests/gnosis $(BLS_OUTPUT_DIR)
 
 $(OUTPUT_DIR)/tests/gnosis:
 	mkdir -p $(OUTPUT_DIR)
-	EF_TESTS_REPO=gnosischain/consensus-specs EF_TESTS_PRESETS="general gnosis" \
+	# EF general + minimal: only MainnetEthSpec is aliased to GnosisEthSpec, so the MinimalEthSpec
+	# column still runs the real (EF) minimal tests, including minimal-only suites like
+	# sync_committee_updates that don't exist in the mainnet-shaped gnosis vectors.
+	EF_TESTS_PRESETS="general minimal" ./download_test_vectors.sh $(CONSENSUS_SPECS_TEST_VERSION)
+	# Gnosis-preset vectors (the aliased mainnet column reads tests/gnosis).
+	EF_TESTS_REPO=gnosischain/consensus-specs EF_TESTS_PRESETS="gnosis" \
 		EF_TESTS_NIGHTLY_WORKFLOW=tests.yml EF_TESTS_NIGHTLY_BRANCH=master \
 		./download_test_vectors.sh $(GNOSIS_SPECS_TEST_VERSION)
-	for test_tarball in general.tar.gz gnosis.tar.gz; do \
+	for test_tarball in general.tar.gz minimal.tar.gz gnosis.tar.gz; do \
 		tar -xzf $$test_tarball -C $(OUTPUT_DIR); \
 		rm -f $$test_tarball; \
 	done
