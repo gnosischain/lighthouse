@@ -19,7 +19,7 @@ all: clean $(OUTPUT_DIR) $(BLS_OUTPUT_DIR)
 
 # Download/extract only the Gnosis-preset suite (+ preset-independent general tests) into the
 # same OUTPUT_DIR layout (tests/gnosis/..., tests/general/...). Used by the dedicated gnosis job.
-gnosis: $(OUTPUT_DIR)/tests/gnosis
+gnosis: $(OUTPUT_DIR)/tests/gnosis $(BLS_OUTPUT_DIR)
 
 $(OUTPUT_DIR)/tests/gnosis:
 	mkdir -p $(OUTPUT_DIR)
