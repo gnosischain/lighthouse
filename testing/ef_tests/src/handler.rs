@@ -35,6 +35,12 @@ pub trait Handler {
 
     fn run(&self) {
         for fork_name in ForkName::list_all() {
+            // Gnosis adopts forks only through Fulu. Later forks (gloas) carry vectors
+            // generated from the upstream mainnet preset values and are out of scope for
+            // Gnosis conformance, so skip them when running the gnosis-preset suite.
+            if cfg!(feature = "gnosis_tests") && fork_name == ForkName::Gloas {
+                continue;
+            }
             if !self.disabled_forks().contains(&fork_name) && self.is_enabled_for_fork(fork_name) {
                 self.run_for_fork(fork_name);
             }
