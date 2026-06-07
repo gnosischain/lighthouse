@@ -35,6 +35,9 @@ $(OUTPUT_DIR)/tests/gnosis:
 		tar -xzf $$test_tarball -C $(OUTPUT_DIR); \
 		rm -f $$test_tarball; \
 	done
+	# Gnosis adopts forks only through Fulu; gloas/heze are out of scope for Gnosis
+	# conformance. Drop them from every preset (the EF minimal tarball still ships them).
+	rm -rf $(OUTPUT_DIR)/tests/*/gloas $(OUTPUT_DIR)/tests/*/heze
 
 clean:
 	rm -rf *.tar.gz $(OUTPUT_DIR) $(BLS_OUTPUT_DIR)
