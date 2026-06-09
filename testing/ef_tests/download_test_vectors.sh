@@ -9,13 +9,13 @@ nightly_workflow="${EF_TESTS_NIGHTLY_WORKFLOW:-generate_vectors.yml}"
 nightly_branch="${EF_TESTS_NIGHTLY_BRANCH:-dev}"
 
 version=${1}
-if [[ "$version" == "nightly" ]]; then
+if [[ "$version" == "nightly" || "$version" =~ ^nightly-[0-9]+$ ]]; then
 	if [[ -z "${GITHUB_TOKEN:-}" ]]; then
 		echo "Error GITHUB_TOKEN is not set"
 		exit 1
 	fi
 
-	for cmd in unzip jq; do
+	for cmd in jq; do
 		if ! command -v "${cmd}" >/dev/null 2>&1; then
 			echo "Error ${cmd} is not installed"
 			exit 1
@@ -25,9 +25,13 @@ if [[ "$version" == "nightly" ]]; then
 	api="https://api.github.com"
 	auth_header="Authorization: token ${GITHUB_TOKEN}"
 
-	run_id=$(curl -s -H "${auth_header}" \
-		"${api}/repos/${repo}/actions/workflows/${nightly_workflow}/runs?branch=${nightly_branch}&status=success&per_page=1" |
-		jq -r '.workflow_runs[0].id')
+	if [[ "$version" == "nightly" ]]; then
+		run_id=$(curl --fail -s -H "${auth_header}" \
+			"${api}/repos/${repo}/actions/workflows/${nightly_workflow}/runs?branch=${nightly_branch}&status=success&per_page=1" |
+			jq -r '.workflow_runs[0].id')
+	else
+		run_id="${version#nightly-}"
+	fi
 
 	if [[ "${run_id}" == "null" || -z "${run_id}" ]]; then
 		echo "No successful nightly workflow run found"
@@ -35,7 +39,7 @@ if [[ "$version" == "nightly" ]]; then
 	fi
 
 	echo "Downloading nightly test vectors for run: ${run_id}"
-	curl -s -H "${auth_header}" "${api}/repos/${repo}/actions/runs/${run_id}/artifacts" |
+	curl --fail -H "${auth_header}" "${api}/repos/${repo}/actions/runs/${run_id}/artifacts" |
 		jq -c '.artifacts[] | {name, url: .archive_download_url}' |
 		while read -r artifact; do
 			name=$(echo "${artifact}" | jq -r .name)
@@ -48,13 +52,10 @@ if [[ "$version" == "nightly" ]]; then
 			echo "Downloading artifact: ${name}"
 			curl --progress-bar --location --show-error --retry 3 --retry-all-errors --fail \
 				-H "${auth_header}" -H "Accept: application/vnd.github+json" \
-				--output "${name}.zip" "${url}" || {
+				--output "${name}" "${url}" || {
 				echo "Failed to download ${name}"
 				exit 1
 			}
-
-			unzip -qo "${name}.zip"
-			rm -f "${name}.zip"
 		done
 else
 	for test in "${TESTS[@]}"; do

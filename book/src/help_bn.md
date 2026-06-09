@@ -225,7 +225,8 @@ Options:
           be careful to avoid filling up their disks.
       --libp2p-addresses <MULTIADDR>
           One or more comma-delimited multiaddrs to manually connect to a libp2p
-          peer without an ENR.
+          peer without an ENR. DEPRECATED. The --libp2p-addresses flag is
+          deprecated and replaced by --boot-nodes
       --listen-address [<ADDRESS>...]
           The address lighthouse will listen for UDP and TCP connections. To
           listen over IPv4 and IPv6 set this flag twice with the different
@@ -305,10 +306,7 @@ Options:
           values are useful for ensuring the EL is given ample notice. Default:
           1/3 of a slot.
       --proposer-reorg-cutoff <MILLISECONDS>
-          Maximum delay after the start of the slot at which to propose a
-          reorging block. Lower values can prevent failed reorgs by ensuring the
-          block has ample time to propagate and be processed by the network. The
-          default is 1/12th of a slot (1 second on mainnet)
+          DEPRECATED. This flag has no effect.
       --proposer-reorg-disallowed-offsets <N1,N2,...>
           Comma-separated list of integer offsets which can be used to avoid
           proposing reorging blocks at certain slots. An offset of N means that
@@ -317,14 +315,11 @@ Options:
           avoided. Any offsets supplied with this flag will impose additional
           restrictions.
       --proposer-reorg-epochs-since-finalization <EPOCHS>
-          Maximum number of epochs since finalization at which proposer reorgs
-          are allowed. Default: 2
+          DEPRECATED. This flag has no effect.
       --proposer-reorg-parent-threshold <PERCENT>
-          Percentage of parent vote weight above which to attempt a proposer
-          reorg. Default: 160%
+          DEPRECATED. This flag has no effect.
       --proposer-reorg-threshold <PERCENT>
-          Percentage of head vote weight below which to attempt a proposer
-          reorg. Default: 20%
+          DEPRECATED. This flag has no effect.
       --prune-blobs <BOOLEAN>
           Prune blobs from Lighthouse's database when they are older than the
           data data availability boundary relative to the current epoch.
@@ -438,6 +433,10 @@ Flags:
           intended for use by block builders, relays and developers. You should
           set a fee recipient on this BN and also consider adjusting the
           --prepare-payload-lookahead flag.
+      --archive
+          Store all beacon states in the database. When checkpoint syncing,
+          states are reconstructed after backfill completes. This requires
+          syncing all the way back to genesis.
       --builder-fallback-disable-checks
           This flag disables all checks related to chain health. This means the
           builder API will always be used for payload construction, regardless
@@ -477,6 +476,9 @@ Flags:
       --disable-packet-filter
           Disables the discovery packet filter. Useful for testing in smaller
           networks
+      --disable-partial-columns
+          Disable partial messages for data columns. Use this on Hoodi or
+          Sepolia to opt out of the default-enabled behavior.
       --disable-proposer-reorgs
           Do not attempt to reorg late blocks from other validators when
           proposing.
@@ -492,6 +494,13 @@ Flags:
           Sets the local ENR IP address and port to match those set for
           lighthouse. Specifically, the IP address will be the value of
           --listen-address and the UDP port will be --discovery-port.
+      --enable-mplex
+          Enables mplex multiplexer alongside yamux. Yamux is preferred when
+          both are available.
+      --enable-partial-columns
+          Enable partial messages for data columns. This can reduce the amount
+          of data sent over the network. Enabled by default on Hoodi and
+          Sepolia; use --disable-partial-columns to opt out.
       --enable-private-discovery
           Lighthouse by default does not discover private IP addresses. Set this
           flag to enable connection attempts to local addresses.
@@ -508,6 +517,12 @@ Flags:
       --http-enable-tls
           Serves the RESTful HTTP API server over TLS. This feature is currently
           experimental.
+      --ignore-ws-check
+          Using this flag allows a node to run in a state that may expose it to
+          long-range attacks. For more information please read this blog post:
+          https://blog.ethereum.org/2014/11/25/proof-stake-learned-love-weak-subjectivity
+          If you understand the risks, you can use this flag to disable the Weak
+          Subjectivity check at startup.
       --import-all-attestations
           Import and aggregate all attestations, regardless of validator
           subscriptions. This will only import attestations from
@@ -545,9 +560,6 @@ Flags:
       --purge-db-force
           If present, the chain database will be deleted without confirmation.
           Use with caution.
-      --reconstruct-historic-states
-          After a checkpoint sync, reconstruct historic states in the database.
-          This requires syncing all the way back to genesis.
       --reset-payload-statuses
           When present, Lighthouse will forget the payload statuses of any
           already-imported blocks. This can assist in the recovery from a
